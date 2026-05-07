@@ -29,7 +29,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://contentpost-backend.onrender.com/api/v1
+        value: https://contentpostautomationapp-server.onrender.com/api/v1
 
 databases:
   - name: contentpost-db
