@@ -41,13 +41,13 @@ type AddViaForm = z.infer<typeof addViaSchema>
 const campaignSchema = z.object({
   name: z.string().min(2, "Tên campaign phải có ít nhất 2 ký tự"),
   sheet_id: z.string().min(3, "Google Sheet ID không hợp lệ"),
-  sheet_tab_name: z.string().default("Sheet1"),
-  rows_per_run: z.coerce.number().min(1).max(100).default(5),
+  sheet_tab_name: z.string().min(1),
+  rows_per_run: z.number().min(1).max(100),
   times: z.string().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  interval_hours: z.coerce.number().min(1).max(24).optional(),
-  max_per_day: z.coerce.number().min(1).max(50).optional(),
+  interval_hours: z.number().min(1).max(24).optional(),
+  max_per_day: z.number().min(1).max(50).optional(),
 })
 type CampaignForm = z.infer<typeof campaignSchema>
 
@@ -248,7 +248,7 @@ export function DashboardPage() {
     setSelectionDirty(true)
   }
 
-  const onSubmitCampaign = (data: CampaignForm) => {
+  const onSubmitCampaign: import("react-hook-form").SubmitHandler<CampaignForm> = (data) => {
     let schedule_config: Record<string, unknown> = {}
     if (scheduleMode === "daily_fixed_time") {
       schedule_config = {
@@ -575,7 +575,7 @@ export function DashboardPage() {
                   </label>
                   <label className="field">
                     <span>Lặp mỗi (giờ)</span>
-                    <input {...campaignForm.register("interval_hours")} type="number" min={1} max={24} placeholder="2" />
+                    <input {...campaignForm.register("interval_hours", { valueAsNumber: true })} type="number" min={1} max={24} placeholder="2" />
                   </label>
                 </div>
               )}
@@ -583,7 +583,7 @@ export function DashboardPage() {
               {scheduleMode === "flexible_make_like" && (
                 <label className="field">
                   <span>Tối đa lần đăng mỗi ngày</span>
-                  <input {...campaignForm.register("max_per_day")} type="number" min={1} max={50} placeholder="5" />
+                  <input {...campaignForm.register("max_per_day", { valueAsNumber: true })} type="number" min={1} max={50} placeholder="5" />
                 </label>
               )}
 
@@ -601,7 +601,7 @@ export function DashboardPage() {
                 </label>
                 <label className="field">
                   <span>Rows/lần chạy</span>
-                  <input {...campaignForm.register("rows_per_run")} type="number" min={1} max={100} />
+                  <input {...campaignForm.register("rows_per_run", { valueAsNumber: true })} type="number" min={1} max={100} />
                 </label>
               </div>
 
