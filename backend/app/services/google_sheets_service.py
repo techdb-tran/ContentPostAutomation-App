@@ -45,8 +45,14 @@ class GoogleSheetsService:
         self._header_map: dict[str, int] | None = None
 
     def _client(self):
+        import json, os
         scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-        credentials = Credentials.from_service_account_file(self.credentials_file, scopes=scopes)
+        json_str = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+        if json_str:
+            info = json.loads(json_str)
+            credentials = Credentials.from_service_account_info(info, scopes=scopes)
+        else:
+            credentials = Credentials.from_service_account_file(self.credentials_file, scopes=scopes)
         return gspread.authorize(credentials)
 
     def _get_worksheet(self):
