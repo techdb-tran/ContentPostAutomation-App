@@ -26,6 +26,7 @@ def create_app(config_object: Optional[Type[Config]] = None) -> Flask:
         importlib.import_module("app.models")
 
         db.create_all()
+        _seed_admin()
 
     register_api_blueprints(app)
     register_error_handlers(app)
@@ -34,6 +35,29 @@ def create_app(config_object: Optional[Type[Config]] = None) -> Flask:
         init_scheduler(app)
 
     return app
+
+
+def _seed_admin() -> None:
+    from app.models.user import User
+    from app.utils.security import hash_password
+    from app.extensions import db
+    import os
+
+    if User.query.first():
+        return
+
+    username = os.getenv("ADMIN_USERNAME", "Admin1")
+    password = os.getenv("ADMIN_PASSWORD", "Admin1@123")
+    display_name = os.getenv("ADMIN_DISPLAY_NAME", "Admin 1")
+
+    admin = User(
+        username=username,
+        display_name=display_name,
+        role="admin",
+        password_hash=hash_password(password),
+    )
+    db.session.add(admin)
+    db.session.commit()
 
 
 def register_error_handlers(app: Flask) -> None:
