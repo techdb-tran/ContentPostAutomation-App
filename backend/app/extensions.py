@@ -1,3 +1,4 @@
+import json
 import os
 
 import firebase_admin
@@ -18,11 +19,18 @@ def init_firebase(credentials_file: str) -> None:
         return
 
     if not firebase_admin._apps:
-        if os.path.exists(credentials_file):
+        credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+        if credentials_json:
+            cred = credentials.Certificate(json.loads(credentials_json))
+            firebase_admin.initialize_app(cred)
+        elif os.path.exists(credentials_file):
             cred = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(cred)
         else:
-            firebase_admin.initialize_app()
+            raise RuntimeError(
+                "Firebase credentials không tìm thấy. "
+                "Đặt FIREBASE_CREDENTIALS_JSON hoặc FIREBASE_CREDENTIALS_FILE."
+            )
 
     _firestore_client = firestore.client()
 
