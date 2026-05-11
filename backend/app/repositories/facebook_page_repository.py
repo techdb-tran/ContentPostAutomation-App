@@ -32,7 +32,7 @@ class FacebookPageRepository:
             query = query.where("via_account_id", "==", via_account_id)
         docs = query.get()
         pages = [self._from_doc(doc) for doc in docs]
-        pages.sort(key=lambda p: p.created_at, reverse=True)
+        pages.sort(key=lambda p: p.page_name.lower())
         return pages
 
     def get_by_id(self, doc_id: str) -> Optional[FacebookPage]:
