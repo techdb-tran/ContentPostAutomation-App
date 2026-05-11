@@ -627,7 +627,8 @@ export function DashboardPage() {
                   <select
                     value={campaignViaId ?? ""}
                     onChange={(e) => {
-                      setCampaignViaId(Number(e.target.value) || null)
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      setCampaignViaId((e.target.value || null) as any)
                       setCampaignPageSelection(new Set())
                     }}
                   >
@@ -779,9 +780,9 @@ function CampaignEditForm({
   isPending: boolean
   viaAccounts: import("@/api/types").ViaAccount[]
 }) {
-  const initialViaId = campaign.viaAccountId
-    ? Number(campaign.viaAccountId) || null
-    : (campaign.pages[0]?.viaAccountId ?? null)
+  // viaAccountId is a Firebase string ID at runtime despite number types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const initialViaId: number | null = (campaign.viaAccountId ?? campaign.pages[0]?.viaAccountId ?? null) as any
 
   const [name, setName] = useState(campaign.name)
   const [sheetId, setSheetId] = useState(campaign.sheetId)
@@ -921,7 +922,8 @@ function CampaignEditForm({
           value={viaId ?? ""}
           onChange={(e) => {
             viaChangedRef.current = true
-            setViaId(Number(e.target.value) || null)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setViaId((e.target.value || null) as any)
             setPageSelection(new Set())
           }}
         >
