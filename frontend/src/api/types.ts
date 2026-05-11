@@ -48,6 +48,7 @@ export interface Campaign {
   sheetTabName: string
   rowsPerRun: number
   isActive: boolean
+  viaAccountId: string | null
   nextRunAt: string | null
   pages: CampaignPage[]
 }
@@ -60,6 +61,7 @@ export interface CreateCampaignPayload {
   sheet_id: string
   sheet_tab_name?: string
   rows_per_run?: number
+  via_account_id?: string | null
   page_ids?: number[]
 }
 
@@ -72,5 +74,6 @@ export interface UpdateCampaignPayload {
   sheet_tab_name?: string
   rows_per_run?: number
   is_active?: boolean
+  via_account_id?: string | null
   page_ids?: number[]
 }

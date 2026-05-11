@@ -32,6 +32,7 @@ class CampaignRepository:
             rows_per_run=data.get("rows_per_run", 5),
             is_active=data.get("is_active", True),
             next_run_at=data.get("next_run_at"),
+            via_account_id=data.get("via_account_id"),
             page_ids=page_ids,
             created_at=data.get("created_at", datetime.utcnow()),
             updated_at=data.get("updated_at", datetime.utcnow()),

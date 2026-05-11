@@ -16,6 +16,7 @@ class Campaign:
     rows_per_run: int = 5
     is_active: bool = True
     next_run_at: Optional[datetime] = None
+    via_account_id: Optional[str] = None
     page_ids: List[str] = field(default_factory=list)
     pages: List = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)

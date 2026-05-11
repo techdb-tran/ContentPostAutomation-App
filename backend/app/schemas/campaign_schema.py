@@ -24,6 +24,7 @@ class CreateCampaignRequestSchema(Schema):
     sheet_id = fields.String(required=True, validate=validate.Length(min=3, max=255))
     sheet_tab_name = fields.String(required=False, load_default="Sheet1")
     rows_per_run = fields.Integer(required=False, load_default=5, validate=validate.Range(min=1, max=100))
+    via_account_id = fields.String(required=False, allow_none=True, load_default=None)
     page_ids = fields.List(fields.String(), required=False, load_default=list)
 
 
@@ -42,6 +43,7 @@ class UpdateCampaignRequestSchema(Schema):
     sheet_tab_name = fields.String(required=False)
     rows_per_run = fields.Integer(required=False, validate=validate.Range(min=1, max=100))
     is_active = fields.Boolean(required=False)
+    via_account_id = fields.String(required=False, allow_none=True, load_default=None)
     page_ids = fields.List(fields.String(), required=False, load_default=None)
 
 
@@ -55,6 +57,7 @@ class CampaignResponseSchema(Schema):
     sheet_tab_name = fields.String()
     rows_per_run = fields.Integer()
     is_active = fields.Boolean()
+    via_account_id = fields.String(allow_none=True)
     next_run_at = fields.DateTime(allow_none=True)
     created_at = fields.DateTime()
     updated_at = fields.DateTime()

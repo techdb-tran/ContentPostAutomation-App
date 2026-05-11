@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
@@ -65,6 +65,7 @@ export function DashboardPage() {
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("daily_fixed_time")
   const [showAddCampaign, setShowAddCampaign] = useState(false)
   const [campaignViaId, setCampaignViaId] = useState<number | null>(null)
+  const [campaignPageSelection, setCampaignPageSelection] = useState<Set<unknown>>(new Set())
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
   const [confirmDeleteCampaignId, setConfirmDeleteCampaignId] = useState<number | null>(null)
 
@@ -107,6 +108,11 @@ export function DashboardPage() {
     setPageSelection(new Set(pages.filter((p) => p.isSelected).map((p) => p.id)))
     setSelectionDirty(false)
   }, [pages])
+
+  // Init campaign page selection when via pages load (default to all)
+  useEffect(() => {
+    setCampaignPageSelection(new Set(campaignViaPages.map((p) => p.id)))
+  }, [campaignViaPages])
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -184,6 +190,7 @@ export function DashboardPage() {
       toast.success(`Campaign "${c.name}" đã được tạo`)
       campaignForm.reset()
       setCampaignViaId(null)
+      setCampaignPageSelection(new Set())
       setShowAddCampaign(false)
     },
     onError: () => toast.error("Không tạo được campaign"),
@@ -248,6 +255,14 @@ export function DashboardPage() {
     setSelectionDirty(true)
   }
 
+  const toggleCampaignPage = (pageId: unknown) => {
+    setCampaignPageSelection((prev) => {
+      const next = new Set(prev)
+      next.has(pageId) ? next.delete(pageId) : next.add(pageId)
+      return next
+    })
+  }
+
   const onSubmitCampaign: import("react-hook-form").SubmitHandler<CampaignForm> = (data) => {
     let schedule_config: Record<string, unknown> = {}
     if (scheduleMode === "daily_fixed_time") {
@@ -267,14 +282,14 @@ export function DashboardPage() {
       sheet_id: data.sheet_id,
       sheet_tab_name: data.sheet_tab_name,
       rows_per_run: data.rows_per_run,
-      page_ids: availableCampaignPages.map((p) => p.id),
+      via_account_id: campaignViaId?.toString() ?? null,
+      page_ids: Array.from(campaignPageSelection) as number[],
     })
   }
 
   const selectedVia = viaAccounts.find((v) => v.id === selectedViaId)
   const selectedCount = pageSelection.size
   const campaignVia = viaAccounts.find((v) => v.id === campaignViaId)
-  const availableCampaignPages = campaignViaPages.filter((p) => p.isSelected)
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -611,7 +626,10 @@ export function DashboardPage() {
                   <span>Via Account đăng bài</span>
                   <select
                     value={campaignViaId ?? ""}
-                    onChange={(e) => setCampaignViaId(Number(e.target.value) || null)}
+                    onChange={(e) => {
+                      setCampaignViaId(Number(e.target.value) || null)
+                      setCampaignPageSelection(new Set())
+                    }}
                   >
                     <option value="">-- Chọn via --</option>
                     {viaAccounts.map((v) => (
@@ -623,20 +641,24 @@ export function DashboardPage() {
                 {campaignViaId && (
                   <div className="campaign-pages-section">
                     <span className="field-label">
-                      Pages sẽ đăng ({availableCampaignPages.length} page đã lưu)
+                      Chọn pages đăng bài ({campaignPageSelection.size}/{campaignViaPages.length})
                     </span>
-                    {availableCampaignPages.length === 0 ? (
+                    {campaignViaPages.length === 0 ? (
                       <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>
-                        Via này chưa có page nào được tick chọn.
-                        Hãy chọn via ở panel trái, tick các page và nhấn "Lưu tùy chọn" trước.
+                        Via này chưa có page nào. Hãy load pages từ Facebook ở panel trái trước.
                       </p>
                     ) : (
                       <div className="campaign-pages-list">
-                        {availableCampaignPages.map((page) => (
-                          <div key={page.id} className="campaign-page-item">
-                            <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
+                        {campaignViaPages.map((page) => (
+                          <label key={page.id} className="campaign-page-item" style={{ cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={campaignPageSelection.has(page.id)}
+                              onChange={() => toggleCampaignPage(page.id)}
+                              style={{ accentColor: "var(--accent)" }}
+                            />
                             <span>{page.pageName}</span>
-                          </div>
+                          </label>
                         ))}
                       </div>
                     )}
@@ -757,7 +779,9 @@ function CampaignEditForm({
   isPending: boolean
   viaAccounts: import("@/api/types").ViaAccount[]
 }) {
-  const currentViaId = campaign.pages[0]?.viaAccountId ?? null
+  const initialViaId = campaign.viaAccountId
+    ? Number(campaign.viaAccountId) || null
+    : (campaign.pages[0]?.viaAccountId ?? null)
 
   const [name, setName] = useState(campaign.name)
   const [sheetId, setSheetId] = useState(campaign.sheetId)
@@ -770,14 +794,33 @@ function CampaignEditForm({
   const [endTime, setEndTime] = useState<string>((campaign.scheduleConfig.end_time as string | undefined) ?? "18:00")
   const [intervalHours, setIntervalHours] = useState<number>((campaign.scheduleConfig.interval_hours as number | undefined) ?? 2)
   const [maxPerDay, setMaxPerDay] = useState<number>((campaign.scheduleConfig.max_per_day as number | undefined) ?? 5)
-  const [viaId, setViaId] = useState<number | null>(currentViaId)
+  const [viaId, setViaId] = useState<number | null>(initialViaId)
+  const [pageSelection, setPageSelection] = useState<Set<unknown>>(
+    new Set(campaign.pages.map((p) => p.id))
+  )
+  const viaChangedRef = React.useRef(false)
 
   const { data: viaPages = [] } = useQuery({
     queryKey: ["facebook-pages", viaId],
     queryFn: () => getFacebookPages(viaId!),
     enabled: viaId !== null,
   })
-  const selectedPages = viaPages.filter((p) => p.isSelected)
+
+  // When user switches via, default all pages of new via as selected
+  useEffect(() => {
+    if (viaChangedRef.current && viaPages.length > 0) {
+      setPageSelection(new Set(viaPages.map((p) => p.id)))
+      viaChangedRef.current = false
+    }
+  }, [viaPages])
+
+  const togglePage = (pageId: unknown) => {
+    setPageSelection((prev) => {
+      const next = new Set(prev)
+      next.has(pageId) ? next.delete(pageId) : next.add(pageId)
+      return next
+    })
+  }
 
   const buildScheduleConfig = (): Record<string, unknown> => {
     if (scheduleMode === "daily_fixed_time")
@@ -797,9 +840,9 @@ function CampaignEditForm({
       is_active: isActive,
       schedule_mode: scheduleMode,
       schedule_config: buildScheduleConfig(),
+      via_account_id: viaId?.toString() ?? null,
+      page_ids: Array.from(pageSelection) as number[],
     }
-    if (viaId !== currentViaId && selectedPages.length > 0)
-      payload.page_ids = selectedPages.map((p) => p.id)
     onSave(payload)
   }
 
@@ -874,7 +917,14 @@ function CampaignEditForm({
 
       <label className="field">
         <span>Via Account đăng bài</span>
-        <select value={viaId ?? ""} onChange={(e) => setViaId(Number(e.target.value) || null)}>
+        <select
+          value={viaId ?? ""}
+          onChange={(e) => {
+            viaChangedRef.current = true
+            setViaId(Number(e.target.value) || null)
+            setPageSelection(new Set())
+          }}
+        >
           <option value="">-- Chọn via --</option>
           {viaAccounts.map((v) => (
             <option key={v.id} value={v.id}>{v.displayName}</option>
@@ -883,16 +933,23 @@ function CampaignEditForm({
       </label>
       {viaId && (
         <div className="campaign-pages-section">
-          <span className="field-label">Pages sẽ đăng ({selectedPages.length} page đã lưu)</span>
-          {selectedPages.length === 0 ? (
-            <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>Via này chưa có page nào được tick chọn.</p>
+          <span className="field-label">
+            Chọn pages đăng bài ({pageSelection.size}/{viaPages.length})
+          </span>
+          {viaPages.length === 0 ? (
+            <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>Via này chưa có page nào.</p>
           ) : (
             <div className="campaign-pages-list">
-              {selectedPages.map((p) => (
-                <div key={p.id} className="campaign-page-item">
-                  <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
+              {viaPages.map((p) => (
+                <label key={p.id} className="campaign-page-item" style={{ cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={pageSelection.has(p.id)}
+                    onChange={() => togglePage(p.id)}
+                    style={{ accentColor: "var(--accent)" }}
+                  />
                   <span>{p.pageName}</span>
-                </div>
+                </label>
               ))}
             </div>
           )}

@@ -21,6 +21,7 @@ interface RawCampaign {
   sheet_tab_name: string
   rows_per_run: number
   is_active: boolean
+  via_account_id: string | null
   next_run_at: string | null
   pages: RawCampaignPage[]
 }
@@ -47,6 +48,7 @@ function mapCampaign(c: RawCampaign): Campaign {
     sheetTabName: c.sheet_tab_name,
     rowsPerRun: c.rows_per_run,
     isActive: c.is_active,
+    viaAccountId: c.via_account_id ?? null,
     nextRunAt: c.next_run_at,
     pages: (c.pages ?? []).map(mapPage),
   }
