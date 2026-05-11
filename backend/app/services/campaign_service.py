@@ -9,10 +9,11 @@ class CampaignService:
         self.repository = CampaignRepository()
         self.execution_service = CampaignExecutionService()
 
-    def list_campaigns(self):
-        return self.repository.list_all()
+    def list_campaigns(self, user_id: str):
+        return self.repository.list_all(user_id)
 
-    def create_campaign(self, data: dict):
+    def create_campaign(self, data: dict, user_id: str):
+        data["user_id"] = user_id
         data["next_run_at"] = calculate_next_run_at(data["schedule_mode"], data["schedule_config"])
         return self.repository.create(data)
 

@@ -22,6 +22,7 @@ class CampaignRepository:
         page_ids = data.get("page_ids", [])
         campaign = Campaign(
             id=doc.id,
+            user_id=data.get("user_id", ""),
             name=data["name"],
             description=data.get("description"),
             schedule_mode=data["schedule_mode"],
@@ -39,8 +40,10 @@ class CampaignRepository:
             campaign.pages = self._page_repo.get_by_page_ids(page_ids)
         return campaign
 
-    def list_all(self) -> List[Campaign]:
-        docs = self._db().collection(COLLECTION).get()
+    def list_all(self, user_id: str) -> List[Campaign]:
+        docs = (
+            self._db().collection(COLLECTION).where("user_id", "==", user_id).get()
+        )
         campaigns = [self._from_doc(doc) for doc in docs]
         campaigns.sort(key=lambda c: c.created_at, reverse=True)
         return campaigns

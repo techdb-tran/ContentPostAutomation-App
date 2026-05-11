@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.schemas.campaign_schema import CampaignResponseSchema, CreateCampaignRequestSchema, UpdateCampaignRequestSchema
 from app.services.campaign_service import CampaignService
@@ -15,7 +15,8 @@ campaign_response_schema = CampaignResponseSchema()
 @bp.get("")
 @jwt_required()
 def list_campaigns():
-    campaigns = service.list_campaigns()
+    user_id = get_jwt_identity()
+    campaigns = service.list_campaigns(user_id)
     return success_response(
         data=campaign_response_schema.dump(campaigns, many=True),
         message="Campaigns retrieved successfully",
@@ -25,8 +26,9 @@ def list_campaigns():
 @bp.post("")
 @jwt_required()
 def create_campaign():
+    user_id = get_jwt_identity()
     payload = create_campaign_schema.load(request.get_json(force=True))
-    campaign = service.create_campaign(payload)
+    campaign = service.create_campaign(payload, user_id)
     return success_response(
         data=campaign_response_schema.dump(campaign),
         message="Campaign created successfully",

@@ -6,6 +6,7 @@ from typing import List, Optional
 @dataclass
 class Campaign:
     id: str
+    user_id: str
     name: str
     schedule_mode: str
     schedule_config: dict

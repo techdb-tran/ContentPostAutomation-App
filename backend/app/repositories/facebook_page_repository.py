@@ -15,6 +15,7 @@ class FacebookPageRepository:
         data = doc.to_dict()
         return FacebookPage(
             id=doc.id,
+            user_id=data.get("user_id", ""),
             via_account_id=data["via_account_id"],
             page_id=data["page_id"],
             page_name=data["page_name"],
@@ -25,8 +26,8 @@ class FacebookPageRepository:
             updated_at=data.get("updated_at", datetime.utcnow()),
         )
 
-    def list_all(self, via_account_id: Optional[str] = None) -> List[FacebookPage]:
-        query = self._db().collection(COLLECTION)
+    def list_all(self, user_id: str, via_account_id: Optional[str] = None) -> List[FacebookPage]:
+        query = self._db().collection(COLLECTION).where("user_id", "==", user_id)
         if via_account_id:
             query = query.where("via_account_id", "==", via_account_id)
         docs = query.get()
@@ -69,14 +70,13 @@ class FacebookPageRepository:
         ref.set(data)
         return self._from_doc(ref.get())
 
-    def upsert_from_facebook(self, via_account_id: str, fb_pages: list) -> List[FacebookPage]:
+    def upsert_from_facebook(self, via_account_id: str, fb_pages: list, user_id: str) -> List[FacebookPage]:
         db = self._db()
         now = datetime.utcnow()
         for fb_page in fb_pages:
             if "access_token" not in fb_page:
                 continue
             page_id = fb_page["id"]
-            # Tìm bản ghi theo cặp (via_account_id, page_id)
             existing = self._find_existing(via_account_id, page_id)
             if existing:
                 db.collection(COLLECTION).document(existing.id).update({
@@ -87,6 +87,7 @@ class FacebookPageRepository:
             else:
                 ref = db.collection(COLLECTION).document()
                 ref.set({
+                    "user_id": user_id,
                     "via_account_id": via_account_id,
                     "page_id": page_id,
                     "page_name": fb_page["name"],
@@ -96,11 +97,11 @@ class FacebookPageRepository:
                     "created_at": now,
                     "updated_at": now,
                 })
-        return self.list_all(via_account_id=via_account_id)
+        return self.list_all(user_id=user_id, via_account_id=via_account_id)
 
-    def update_selection_for_via(self, via_account_id: str, selected_page_ids: list) -> List[FacebookPage]:
+    def update_selection_for_via(self, via_account_id: str, selected_page_ids: list, user_id: str) -> List[FacebookPage]:
         selected_set = set(selected_page_ids)
-        pages = self.list_all(via_account_id=via_account_id)
+        pages = self.list_all(user_id=user_id, via_account_id=via_account_id)
         now = datetime.utcnow()
         db = self._db()
         for page in pages:

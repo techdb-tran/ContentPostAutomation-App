@@ -48,7 +48,8 @@ def delete_via_account(via_id: str):
 @bp.post("/<via_id>/fetch-pages")
 @jwt_required()
 def fetch_pages(via_id: str):
-    pages = service.fetch_pages_from_facebook(via_id)
+    user_id = get_jwt_identity()
+    pages = service.fetch_pages_from_facebook(via_id, user_id)
     return success_response(
         data=page_response_schema.dump(pages, many=True),
         message=f"Đã tải {len(pages)} page từ Facebook",
@@ -58,8 +59,9 @@ def fetch_pages(via_id: str):
 @bp.post("/<via_id>/pages/selection")
 @jwt_required()
 def save_page_selection(via_id: str):
+    user_id = get_jwt_identity()
     payload = selection_schema.load(request.get_json(silent=True) or {})
-    pages = service.save_page_selection(via_id, payload["selected_page_ids"])
+    pages = service.save_page_selection(via_id, payload["selected_page_ids"], user_id)
     return success_response(
         data=page_response_schema.dump(pages, many=True),
         message="Đã lưu tùy chọn page",

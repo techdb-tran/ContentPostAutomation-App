@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.schemas.facebook_page_schema import CreateFacebookPageRequestSchema, FacebookPageResponseSchema
 from app.services.facebook_page_service import FacebookPageService
@@ -14,8 +14,9 @@ response_schema = FacebookPageResponseSchema()
 @bp.get("")
 @jwt_required()
 def list_pages():
+    user_id = get_jwt_identity()
     via_account_id = request.args.get("via_account_id")
-    pages = service.list_pages(via_account_id=via_account_id)
+    pages = service.list_pages(user_id=user_id, via_account_id=via_account_id)
     return success_response(
         data=response_schema.dump(pages, many=True),
         message="Facebook pages retrieved successfully",
@@ -25,8 +26,9 @@ def list_pages():
 @bp.post("")
 @jwt_required()
 def create_page():
+    user_id = get_jwt_identity()
     payload = create_schema.load(request.get_json(silent=True) or {})
-    page = service.create_page(payload)
+    page = service.create_page(payload, user_id)
     return success_response(
         data=response_schema.dump(page),
         message="Facebook page created successfully",

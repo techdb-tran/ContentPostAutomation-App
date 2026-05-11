@@ -5,6 +5,7 @@ from datetime import datetime
 @dataclass
 class FacebookPage:
     id: str
+    user_id: str
     via_account_id: str
     page_id: str
     page_name: str
