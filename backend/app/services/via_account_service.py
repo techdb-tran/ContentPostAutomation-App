@@ -24,21 +24,26 @@ class ViaAccountService:
         if not via:
             raise NotFoundError("Via account không tồn tại")
 
-        try:
-            resp = requests.get(
-                f"{GRAPH_BASE}/me/accounts",
-                params={"fields": "id,name,access_token", "access_token": via.access_token},
-                timeout=10,
-            )
-        except requests.RequestException as exc:
-            raise AppError(f"Không kết nối được Facebook: {exc}", status_code=502)
+        all_pages = []
+        next_url = f"{GRAPH_BASE}/me/accounts"
+        params = {"fields": "id,name,access_token", "access_token": via.access_token, "limit": 100}
 
-        body = resp.json()
-        if not resp.ok:
-            msg = body.get("error", {}).get("message", "Facebook API error")
-            raise AppError(f"Facebook API: {msg}", status_code=502)
+        while next_url and len(all_pages) < 100:
+            try:
+                resp = requests.get(next_url, params=params, timeout=10)
+            except requests.RequestException as exc:
+                raise AppError(f"Không kết nối được Facebook: {exc}", status_code=502)
 
-        return self.page_repository.upsert_from_facebook(via_account_id, body.get("data", []), user_id)
+            body = resp.json()
+            if not resp.ok:
+                msg = body.get("error", {}).get("message", "Facebook API error")
+                raise AppError(f"Facebook API: {msg}", status_code=502)
+
+            all_pages.extend(body.get("data", []))
+            next_url = body.get("paging", {}).get("next")
+            params = {}
+
+        return self.page_repository.upsert_from_facebook(via_account_id, all_pages[:100], user_id)
 
     def delete_account(self, via_account_id: str):
         if not self.repository.delete(via_account_id):
