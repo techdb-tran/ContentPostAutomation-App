@@ -5,7 +5,6 @@ from app.schemas.campaign_schema import CampaignResponseSchema, CreateCampaignRe
 from app.services.campaign_service import CampaignService
 from app.utils.response import success_response
 
-
 bp = Blueprint("campaigns", __name__, url_prefix="/campaigns")
 service = CampaignService()
 create_campaign_schema = CreateCampaignRequestSchema()
@@ -35,9 +34,9 @@ def create_campaign():
     )
 
 
-@bp.put("/<int:campaign_id>")
+@bp.put("/<campaign_id>")
 @jwt_required()
-def update_campaign(campaign_id: int):
+def update_campaign(campaign_id: str):
     payload = update_campaign_schema.load(request.get_json(force=True))
     campaign = service.update_campaign(campaign_id, payload)
     return success_response(
@@ -46,16 +45,16 @@ def update_campaign(campaign_id: int):
     )
 
 
-@bp.delete("/<int:campaign_id>")
+@bp.delete("/<campaign_id>")
 @jwt_required()
-def delete_campaign(campaign_id: int):
+def delete_campaign(campaign_id: str):
     service.delete_campaign(campaign_id)
     return success_response(message="Campaign đã được xóa")
 
 
-@bp.post("/<int:campaign_id>/execute-next")
+@bp.post("/<campaign_id>/execute-next")
 @jwt_required()
-def execute_next_row(campaign_id: int):
+def execute_next_row(campaign_id: str):
     result = service.execute_next_row(campaign_id)
     return success_response(
         data=result,

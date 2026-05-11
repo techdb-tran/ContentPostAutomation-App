@@ -7,51 +7,49 @@ import { z } from "zod"
 import { toast } from "sonner"
 import axios from "axios"
 
-import { login } from "@/api/auth.api"
+import { register } from "@/api/auth.api"
 import { useAuthStore } from "@/store/auth.store"
 
-const loginSchema = z.object({
-  username: z.string().min(2, "Vui lòng nhập username"),
+const registerSchema = z.object({
+  display_name: z.string().min(2, "Tên hiển thị phải có ít nhất 2 ký tự"),
+  username: z.string().min(2, "Username phải có ít nhất 2 ký tự").max(50),
   password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: "Mật khẩu xác nhận không khớp",
+  path: ["confirmPassword"],
 })
 
-type LoginFormData = z.infer<typeof loginSchema>
+type RegisterFormData = z.infer<typeof registerSchema>
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((state) => state.setSession)
   const accessToken = useAuthStore((state) => state.accessToken)
 
   const mutation = useMutation({
-    mutationFn: login,
+    mutationFn: (data: RegisterFormData) =>
+      register({ username: data.username, password: data.password, display_name: data.display_name }),
     onSuccess: (data) => {
       setSession(data)
-      toast.success(`Chào mừng, ${data.user.displayName}!`)
+      toast.success(`Đăng ký thành công! Chào mừng, ${data.user.displayName}!`)
       navigate("/", { replace: true })
     },
   })
 
   const {
-    register,
+    register: formRegister,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
   })
 
   useEffect(() => {
-    if (accessToken) {
-      navigate("/", { replace: true })
-    }
+    if (accessToken) navigate("/", { replace: true })
   }, [accessToken, navigate])
 
-  const onSubmit = (data: LoginFormData) => {
-    mutation.mutate(data)
-  }
+  const onSubmit = (data: RegisterFormData) => mutation.mutate(data)
 
   const serverError = axios.isAxiosError(mutation.error)
     ? (mutation.error.response?.data as { message?: string })?.message
@@ -64,48 +62,68 @@ export function LoginPage() {
           <div className="brand-mark">A</div>
           <div>
             <h1 className="login-title">Auto Posting Studio</h1>
-            <p className="subtle">Đăng nhập để tiếp tục</p>
+            <p className="subtle">Tạo tài khoản mới</p>
           </div>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <label className="field">
+            <span>Tên hiển thị</span>
+            <input
+              {...formRegister("display_name")}
+              placeholder="Nguyễn Văn A"
+              autoFocus
+            />
+            {errors.display_name && <small className="field-error">{errors.display_name.message}</small>}
+          </label>
+
+          <label className="field">
             <span>Username</span>
             <input
-              {...register("username")}
-              placeholder="Admin1"
+              {...formRegister("username")}
+              placeholder="username123"
               autoComplete="username"
-              autoFocus
             />
             {errors.username && <small className="field-error">{errors.username.message}</small>}
           </label>
 
           <label className="field">
-            <span>Password</span>
+            <span>Mật khẩu</span>
             <input
-              {...register("password")}
+              {...formRegister("password")}
               type="password"
               placeholder="••••••••"
-              autoComplete="current-password"
+              autoComplete="new-password"
             />
             {errors.password && <small className="field-error">{errors.password.message}</small>}
           </label>
 
+          <label className="field">
+            <span>Xác nhận mật khẩu</span>
+            <input
+              {...formRegister("confirmPassword")}
+              type="password"
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+            {errors.confirmPassword && <small className="field-error">{errors.confirmPassword.message}</small>}
+          </label>
+
           <button className="primary-button login-submit" type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
+            {mutation.isPending ? "Đang đăng ký..." : "Đăng ký"}
           </button>
 
           {mutation.isError && (
             <p className="field-error login-server-error">
-              {serverError ?? "Sai tài khoản hoặc mật khẩu."}
+              {serverError ?? "Đã xảy ra lỗi, vui lòng thử lại."}
             </p>
           )}
         </form>
 
         <p className="subtle" style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.875rem" }}>
-          Chưa có tài khoản?{" "}
-          <Link to="/register" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>
-            Đăng ký ngay
+          Đã có tài khoản?{" "}
+          <Link to="/login" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>
+            Đăng nhập
           </Link>
         </p>
       </div>

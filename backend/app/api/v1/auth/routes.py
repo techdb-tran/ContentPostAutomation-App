@@ -1,14 +1,19 @@
 from flask import Blueprint, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required, create_access_token
+from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
 
-from app.schemas.auth_schema import AuthTokenResponseSchema, AuthUserResponseSchema, LoginRequestSchema
+from app.schemas.auth_schema import (
+    AuthTokenResponseSchema,
+    AuthUserResponseSchema,
+    LoginRequestSchema,
+    RegisterRequestSchema,
+)
 from app.services.auth_service import AuthService
 from app.utils.response import success_response
-
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 service = AuthService()
 login_schema = LoginRequestSchema()
+register_schema = RegisterRequestSchema()
 user_response_schema = AuthUserResponseSchema()
 token_response_schema = AuthTokenResponseSchema()
 
@@ -23,6 +28,24 @@ def login():
             "tokens": token_response_schema.dump(tokens),
         },
         message="Đăng nhập thành công",
+    )
+
+
+@bp.post("/register")
+def register():
+    payload = register_schema.load(request.get_json(silent=True) or {})
+    user, tokens = service.register(
+        username=payload["username"],
+        password=payload["password"],
+        display_name=payload["display_name"],
+    )
+    return success_response(
+        data={
+            "user": user_response_schema.dump(user),
+            "tokens": token_response_schema.dump(tokens),
+        },
+        message="Đăng ký thành công",
+        status_code=201,
     )
 
 

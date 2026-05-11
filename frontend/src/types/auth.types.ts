@@ -15,6 +15,12 @@ export interface LoginPayload {
   password: string
 }
 
+export interface RegisterPayload {
+  username: string
+  password: string
+  display_name: string
+}
+
 export interface LoginResponse {
   user: AuthUser
   tokens: AuthTokens

@@ -1,11 +1,33 @@
+import os
+
+import firebase_admin
+from firebase_admin import credentials, firestore
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_marshmallow import Marshmallow
-from flask_sqlalchemy import SQLAlchemy
 
-
-db = SQLAlchemy()
-ma = Marshmallow()
 cors = CORS()
 jwt = JWTManager()
 scheduler = None
+
+_firestore_client = None
+
+
+def init_firebase(credentials_file: str) -> None:
+    global _firestore_client
+    if _firestore_client is not None:
+        return
+
+    if not firebase_admin._apps:
+        if os.path.exists(credentials_file):
+            cred = credentials.Certificate(credentials_file)
+            firebase_admin.initialize_app(cred)
+        else:
+            firebase_admin.initialize_app()
+
+    _firestore_client = firestore.client()
+
+
+def get_firestore():
+    if _firestore_client is None:
+        raise RuntimeError("Firebase chưa được khởi tạo. Gọi init_firebase() trước.")
+    return _firestore_client

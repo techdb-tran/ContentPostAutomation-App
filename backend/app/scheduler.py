@@ -20,12 +20,12 @@ def init_scheduler(app: Flask) -> None:
         with app.app_context():
             campaign_repository = CampaignRepository()
             execution_service = CampaignExecutionService()
-            due_campaigns = campaign_repository.list_due(datetime.now())
+            due_campaigns = campaign_repository.list_due(datetime.utcnow())
 
             for campaign in due_campaigns:
                 try:
                     execution_service.execute_next_row(campaign.id)
-                except Exception as exc:  # pragma: no cover - background job logging
+                except Exception as exc:
                     app.logger.exception("Campaign %s execution failed: %s", campaign.id, exc)
 
     scheduler.add_job(

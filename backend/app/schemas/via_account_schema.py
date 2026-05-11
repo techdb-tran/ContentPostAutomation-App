@@ -8,7 +8,7 @@ class CreateViaAccountRequestSchema(Schema):
 
 
 class ViaAccountResponseSchema(Schema):
-    id = fields.Integer(dump_only=True)
+    id = fields.String(dump_only=True)
     display_name = fields.String()
     token_expires_at = fields.DateTime(allow_none=True)
     is_active = fields.Boolean()
@@ -17,4 +17,4 @@ class ViaAccountResponseSchema(Schema):
 
 
 class SavePageSelectionSchema(Schema):
-    selected_page_ids = fields.List(fields.Integer(), required=True)
+    selected_page_ids = fields.List(fields.String(), required=True)

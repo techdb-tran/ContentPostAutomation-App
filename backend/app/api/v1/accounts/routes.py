@@ -1,11 +1,10 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 
-from app.schemas.via_account_schema import CreateViaAccountRequestSchema, SavePageSelectionSchema, ViaAccountResponseSchema
 from app.schemas.facebook_page_schema import FacebookPageResponseSchema
+from app.schemas.via_account_schema import CreateViaAccountRequestSchema, SavePageSelectionSchema, ViaAccountResponseSchema
 from app.services.via_account_service import ViaAccountService
 from app.utils.response import success_response
-
 
 bp = Blueprint("accounts", __name__, url_prefix="/via-accounts")
 service = ViaAccountService()
@@ -37,16 +36,16 @@ def create_via_account():
     )
 
 
-@bp.delete("/<int:via_id>")
+@bp.delete("/<via_id>")
 @jwt_required()
-def delete_via_account(via_id: int):
+def delete_via_account(via_id: str):
     service.delete_account(via_id)
     return success_response(message="Via account đã được xóa")
 
 
-@bp.post("/<int:via_id>/fetch-pages")
+@bp.post("/<via_id>/fetch-pages")
 @jwt_required()
-def fetch_pages(via_id: int):
+def fetch_pages(via_id: str):
     pages = service.fetch_pages_from_facebook(via_id)
     return success_response(
         data=page_response_schema.dump(pages, many=True),
@@ -54,9 +53,9 @@ def fetch_pages(via_id: int):
     )
 
 
-@bp.post("/<int:via_id>/pages/selection")
+@bp.post("/<via_id>/pages/selection")
 @jwt_required()
-def save_page_selection(via_id: int):
+def save_page_selection(via_id: str):
     payload = selection_schema.load(request.get_json(silent=True) or {})
     pages = service.save_page_selection(via_id, payload["selected_page_ids"])
     return success_response(
