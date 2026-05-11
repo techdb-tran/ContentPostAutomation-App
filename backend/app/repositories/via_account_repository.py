@@ -15,6 +15,7 @@ class ViaAccountRepository:
         data = doc.to_dict()
         return ViaAccount(
             id=doc.id,
+            user_id=data.get("user_id", ""),
             display_name=data["display_name"],
             access_token=data["access_token"],
             token_expires_at=data.get("token_expires_at"),
@@ -23,8 +24,10 @@ class ViaAccountRepository:
             updated_at=data.get("updated_at", datetime.utcnow()),
         )
 
-    def list_all(self) -> List[ViaAccount]:
-        docs = self._db().collection(COLLECTION).get()
+    def list_by_user(self, user_id: str) -> List[ViaAccount]:
+        docs = (
+            self._db().collection(COLLECTION).where("user_id", "==", user_id).get()
+        )
         accounts = [self._from_doc(doc) for doc in docs]
         accounts.sort(key=lambda a: a.created_at, reverse=True)
         return accounts

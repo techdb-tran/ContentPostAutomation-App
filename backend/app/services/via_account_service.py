@@ -12,10 +12,11 @@ class ViaAccountService:
         self.repository = ViaAccountRepository()
         self.page_repository = FacebookPageRepository()
 
-    def list_accounts(self):
-        return self.repository.list_all()
+    def list_accounts(self, user_id: str):
+        return self.repository.list_by_user(user_id)
 
-    def create_account(self, data: dict):
+    def create_account(self, data: dict, user_id: str):
+        data["user_id"] = user_id
         return self.repository.create(data)
 
     def fetch_pages_from_facebook(self, via_account_id: str):

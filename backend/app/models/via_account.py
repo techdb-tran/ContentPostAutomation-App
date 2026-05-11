@@ -6,6 +6,7 @@ from typing import Optional
 @dataclass
 class ViaAccount:
     id: str
+    user_id: str
     display_name: str
     access_token: str
     token_expires_at: Optional[datetime] = None

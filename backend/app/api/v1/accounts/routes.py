@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.schemas.facebook_page_schema import FacebookPageResponseSchema
 from app.schemas.via_account_schema import CreateViaAccountRequestSchema, SavePageSelectionSchema, ViaAccountResponseSchema
@@ -17,7 +17,8 @@ selection_schema = SavePageSelectionSchema()
 @bp.get("")
 @jwt_required()
 def list_via_accounts():
-    accounts = service.list_accounts()
+    user_id = get_jwt_identity()
+    accounts = service.list_accounts(user_id)
     return success_response(
         data=response_schema.dump(accounts, many=True),
         message="Via accounts retrieved successfully",
@@ -27,8 +28,9 @@ def list_via_accounts():
 @bp.post("")
 @jwt_required()
 def create_via_account():
+    user_id = get_jwt_identity()
     payload = create_schema.load(request.get_json(silent=True) or {})
-    account = service.create_account(payload)
+    account = service.create_account(payload, user_id)
     return success_response(
         data=response_schema.dump(account),
         message="Via account created successfully",
