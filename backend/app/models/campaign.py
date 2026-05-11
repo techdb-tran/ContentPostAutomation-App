@@ -19,5 +19,7 @@ class Campaign:
     via_account_id: Optional[str] = None
     page_ids: List[str] = field(default_factory=list)
     pages: List = field(default_factory=list)
+    instagram_account_ids: List[str] = field(default_factory=list)
+    instagram_accounts: List = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)

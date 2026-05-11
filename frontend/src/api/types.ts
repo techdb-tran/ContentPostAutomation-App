@@ -38,6 +38,24 @@ export interface CampaignPage {
   isActive: boolean
 }
 
+export interface InstagramAccount {
+  id: string
+  viaAccountId: string
+  instagramId: string
+  username: string
+  isSelected: boolean
+  isActive: boolean
+}
+
+export interface CampaignIgAccount {
+  id: string
+  viaAccountId: string
+  instagramId: string
+  username: string
+  isSelected: boolean
+  isActive: boolean
+}
+
 export interface Campaign {
   id: number
   name: string
@@ -51,6 +69,7 @@ export interface Campaign {
   viaAccountId: string | null
   nextRunAt: string | null
   pages: CampaignPage[]
+  instagramAccounts: CampaignIgAccount[]
 }
 
 export interface CreateCampaignPayload {
@@ -62,7 +81,8 @@ export interface CreateCampaignPayload {
   sheet_tab_name?: string
   rows_per_run?: number
   via_account_id?: string | null
-  page_ids?: number[]
+  page_ids?: unknown[]
+  instagram_account_ids?: unknown[]
 }
 
 export interface UpdateCampaignPayload {
@@ -75,5 +95,6 @@ export interface UpdateCampaignPayload {
   rows_per_run?: number
   is_active?: boolean
   via_account_id?: string | null
-  page_ids?: number[]
+  page_ids?: unknown[]
+  instagram_account_ids?: unknown[]
 }

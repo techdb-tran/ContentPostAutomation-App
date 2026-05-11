@@ -6,6 +6,7 @@ from app.repositories.campaign_repository import CampaignRepository
 from app.repositories.execution_log_repository import ExecutionLogRepository
 from app.services.facebook_posting_service import FacebookPostingService
 from app.services.google_sheets_service import GoogleSheetsService
+from app.services.instagram_posting_service import InstagramPostingService
 from app.utils.exceptions import AppError, NotFoundError
 from app.utils.schedule import calculate_next_run_at
 
@@ -15,14 +16,15 @@ class CampaignExecutionService:
         self.campaign_repository = CampaignRepository()
         self.log_repository = ExecutionLogRepository()
         self.posting_service = FacebookPostingService()
+        self.ig_posting_service = InstagramPostingService()
 
     def execute_next_row(self, campaign_id: str) -> dict:
         campaign = self.campaign_repository.get_by_id(campaign_id)
         if not campaign:
             raise NotFoundError("Campaign không tồn tại")
 
-        if not campaign.pages:
-            raise AppError("Campaign chưa có Facebook Page nào được chọn", status_code=400)
+        if not campaign.pages and not campaign.instagram_accounts:
+            raise AppError("Campaign chưa có Facebook Page hoặc Instagram Account nào được chọn", status_code=400)
 
         sheet_service = GoogleSheetsService(campaign.sheet_id, campaign.sheet_tab_name)
         row = sheet_service.find_next_planning_row()
@@ -43,6 +45,7 @@ class CampaignExecutionService:
 
         try:
             posted_results = []
+
             for page in campaign.pages:
                 result = self.posting_service.publish_video(
                     page_id=page.page_id,
@@ -51,8 +54,23 @@ class CampaignExecutionService:
                     caption=row.caption,
                 )
                 posted_results.append({
-                    "page_name": page.page_name,
-                    "page_id": page.page_id,
+                    "platform": "facebook",
+                    "name": page.page_name,
+                    "id": page.page_id,
+                    "permalink_url": result["permalink_url"],
+                })
+
+            for ig in campaign.instagram_accounts:
+                result = self.ig_posting_service.publish_video(
+                    ig_user_id=ig.instagram_id,
+                    access_token=ig.page_access_token,
+                    video_url=row.video_uri,
+                    caption=row.caption,
+                )
+                posted_results.append({
+                    "platform": "instagram",
+                    "name": ig.username,
+                    "id": ig.instagram_id,
                     "permalink_url": result["permalink_url"],
                 })
 

@@ -9,6 +9,7 @@ import axios from "axios"
 
 import { getViaAccounts, createViaAccount, fetchPagesFromFacebook, savePageSelection, deleteViaAccount } from "@/api/viaAccount.api"
 import { getFacebookPages } from "@/api/facebookPage.api"
+import { getInstagramAccounts, saveIgSelection } from "@/api/instagramAccount.api"
 import { getCampaigns, createCampaign, updateCampaign, deleteCampaign } from "@/api/campaign.api"
 import type { Campaign } from "@/api/types"
 import { useAuthStore } from "@/store/auth.store"
@@ -72,6 +73,10 @@ export function DashboardPage() {
   const [pageSelection, setPageSelection] = useState<Set<number>>(new Set())
   const [selectionDirty, setSelectionDirty] = useState(false)
 
+  // IG account selection for the IG panel
+  const [igSelection, setIgSelection] = useState<Set<string>>(new Set())
+  const [igSelectionDirty, setIgSelectionDirty] = useState(false)
+
   const handleLogout = () => {
     logout()
     navigate("/login", { replace: true })
@@ -102,11 +107,30 @@ export function DashboardPage() {
     enabled: campaignViaId !== null,
   })
 
+  // IG accounts for the selected via (Pages panel)
+  const { data: igAccounts = [] } = useQuery({
+    queryKey: ["instagram-accounts", selectedViaId],
+    queryFn: () => getInstagramAccounts(selectedViaId),
+    enabled: selectedViaId !== null,
+  })
+
+  // IG accounts for the campaign form via
+  const { data: campaignIgAccounts = [] } = useQuery({
+    queryKey: ["instagram-accounts", campaignViaId],
+    queryFn: () => getInstagramAccounts(campaignViaId),
+    enabled: campaignViaId !== null,
+  })
+
   // Sync Pages-panel local selection when data loads
   useEffect(() => {
     setPageSelection(new Set(pages.filter((p) => p.isSelected).map((p) => p.id)))
     setSelectionDirty(false)
   }, [pages])
+
+  useEffect(() => {
+    setIgSelection(new Set(igAccounts.filter((a) => a.isSelected).map((a) => a.id)))
+    setIgSelectionDirty(false)
+  }, [igAccounts])
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -160,6 +184,17 @@ export function DashboardPage() {
       toast.success("Đã lưu tùy chọn page")
     },
     onError: () => toast.error("Không lưu được tùy chọn"),
+  })
+
+  const saveIgSelectionMutation = useMutation({
+    mutationFn: ({ viaId, ids }: { viaId: unknown; ids: string[] }) =>
+      saveIgSelection(viaId, ids),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["instagram-accounts", selectedViaId], updated)
+      setIgSelectionDirty(false)
+      toast.success("Đã lưu tùy chọn Instagram")
+    },
+    onError: () => toast.error("Không lưu được tùy chọn Instagram"),
   })
 
   const campaignForm = useForm<CampaignForm>({
@@ -248,6 +283,20 @@ export function DashboardPage() {
     setSelectionDirty(true)
   }
 
+  const toggleIg = (id: string) => {
+    setIgSelection((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+    setIgSelectionDirty(true)
+  }
+
+  const handleSaveIgSelection = () => {
+    if (!selectedViaId) return
+    saveIgSelectionMutation.mutate({ viaId: selectedViaId, ids: Array.from(igSelection) })
+  }
+
   const onSubmitCampaign: import("react-hook-form").SubmitHandler<CampaignForm> = (data) => {
     let schedule_config: Record<string, unknown> = {}
     if (scheduleMode === "daily_fixed_time") {
@@ -269,6 +318,7 @@ export function DashboardPage() {
       rows_per_run: data.rows_per_run,
       via_account_id: campaignViaId?.toString() ?? null,
       page_ids: availableCampaignPages.map((p) => p.id),
+      instagram_account_ids: availableCampaignIgAccounts.map((a) => a.id),
     })
   }
 
@@ -276,6 +326,7 @@ export function DashboardPage() {
   const selectedCount = pageSelection.size
   const campaignVia = viaAccounts.find((v) => v.id === campaignViaId)
   const availableCampaignPages = campaignViaPages.filter((p) => p.isSelected)
+  const availableCampaignIgAccounts = campaignIgAccounts.filter((a) => a.isSelected)
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -506,6 +557,59 @@ export function DashboardPage() {
                     </button>
                   </div>
                 )}
+
+                {/* ── Instagram Accounts ── */}
+                {igAccounts.length > 0 && (
+                  <>
+                    <div style={{ borderTop: "1px solid var(--line)", margin: "16px 0 12px" }} />
+                    <div className="section-head" style={{ marginBottom: 8 }}>
+                      <div>
+                        <p className="eyebrow">Instagram</p>
+                        <h3 style={{ fontSize: 15, fontWeight: 600 }}>Instagram Accounts</h3>
+                      </div>
+                      {igSelectionDirty && (
+                        <button
+                          className="primary-button"
+                          onClick={handleSaveIgSelection}
+                          disabled={saveIgSelectionMutation.isPending}
+                        >
+                          {saveIgSelectionMutation.isPending ? "Đang lưu..." : `Lưu IG (${igSelection.size})`}
+                        </button>
+                      )}
+                    </div>
+                    <div className="list">
+                      {igAccounts.map((acc) => (
+                        <label key={acc.id} className="row-card page-row-label">
+                          <input
+                            type="checkbox"
+                            className="page-checkbox"
+                            checked={igSelection.has(acc.id)}
+                            onChange={() => toggleIg(acc.id)}
+                          />
+                          <div className="page-row-info">
+                            <h3>@{acc.username}</h3>
+                            <p>ID: {acc.instagramId}</p>
+                          </div>
+                          <span className={`status-chip ${acc.isActive ? "success" : "danger"}`}>
+                            {acc.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {igSelectionDirty && (
+                      <div className="pages-save-bar">
+                        <span className="subtle" style={{ fontSize: 13 }}>Có thay đổi chưa lưu</span>
+                        <button
+                          className="primary-button"
+                          onClick={handleSaveIgSelection}
+                          disabled={saveIgSelectionMutation.isPending}
+                        >
+                          {saveIgSelectionMutation.isPending ? "Đang lưu..." : `Lưu IG (${igSelection.size} account)`}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
           </section>
@@ -625,25 +729,49 @@ export function DashboardPage() {
                 </label>
 
                 {campaignViaId && (
-                  <div className="campaign-pages-section">
-                    <span className="field-label">
-                      Pages sẽ đăng ({availableCampaignPages.length} page)
-                    </span>
-                    {availableCampaignPages.length === 0 ? (
-                      <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>
-                        Via này chưa có page nào được chọn. Hãy tick pages ở panel "Facebook Pages" phía trên trước.
-                      </p>
-                    ) : (
-                      <div className="campaign-pages-list">
-                        {availableCampaignPages.map((page) => (
-                          <div key={page.id} className="campaign-page-item">
-                            <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
-                            <span>{page.pageName}</span>
+                  <>
+                    <div className="campaign-pages-section">
+                      <span className="field-label">
+                        Facebook Pages ({availableCampaignPages.length})
+                      </span>
+                      {availableCampaignPages.length === 0 ? (
+                        <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>
+                          Via này chưa có FB page nào được chọn. Hãy tick pages ở panel phía trên trước.
+                        </p>
+                      ) : (
+                        <div className="campaign-pages-list">
+                          {availableCampaignPages.map((page) => (
+                            <div key={page.id} className="campaign-page-item">
+                              <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
+                              <span>{page.pageName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {campaignIgAccounts.length > 0 && (
+                      <div className="campaign-pages-section" style={{ marginTop: 8 }}>
+                        <span className="field-label">
+                          Instagram Accounts ({availableCampaignIgAccounts.length})
+                        </span>
+                        {availableCampaignIgAccounts.length === 0 ? (
+                          <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>
+                            Via này chưa có IG account nào được chọn. Hãy tick IG ở panel phía trên trước.
+                          </p>
+                        ) : (
+                          <div className="campaign-pages-list">
+                            {availableCampaignIgAccounts.map((acc) => (
+                              <div key={acc.id} className="campaign-page-item">
+                                <span className="status-chip" style={{ fontSize: 11, color: "var(--accent)" }}>IG</span>
+                                <span>@{acc.username}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -715,9 +843,14 @@ export function DashboardPage() {
                           )}
                         </div>
                       </div>
-                      {c.pages.length > 0 && (
+                      {(c.pages.length > 0 || c.instagramAccounts.length > 0) && (
                         <div className="tag-list">
-                          {c.pages.map((p) => <span key={p.id} className="chip">{p.pageName}</span>)}
+                          {c.pages.map((p) => (
+                            <span key={p.id} className="chip">{p.pageName}</span>
+                          ))}
+                          {c.instagramAccounts.map((a) => (
+                            <span key={a.id} className="chip" style={{ color: "var(--accent)" }}>IG @{a.username}</span>
+                          ))}
                         </div>
                       )}
                     </>
@@ -782,7 +915,13 @@ function CampaignEditForm({
     queryFn: () => getFacebookPages(viaId!),
     enabled: viaId !== null,
   })
+  const { data: viaIgAccounts = [] } = useQuery({
+    queryKey: ["instagram-accounts", viaId],
+    queryFn: () => getInstagramAccounts(viaId),
+    enabled: viaId !== null,
+  })
   const selectedPages = viaPages.filter((p) => p.isSelected)
+  const selectedIgAccounts = viaIgAccounts.filter((a) => a.isSelected)
 
   const buildScheduleConfig = (): Record<string, unknown> => {
     if (scheduleMode === "daily_fixed_time")
@@ -804,6 +943,7 @@ function CampaignEditForm({
       schedule_config: buildScheduleConfig(),
       via_account_id: viaId?.toString() ?? null,
       page_ids: selectedPages.map((p) => p.id),
+      instagram_account_ids: selectedIgAccounts.map((a) => a.id),
     }
     onSave(payload)
   }
@@ -893,23 +1033,41 @@ function CampaignEditForm({
         </select>
       </label>
       {viaId && (
-        <div className="campaign-pages-section">
-          <span className="field-label">
-            Pages sẽ đăng ({selectedPages.length} page)
-          </span>
-          {selectedPages.length === 0 ? (
-            <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>Via này chưa có page nào được chọn.</p>
-          ) : (
-            <div className="campaign-pages-list">
-              {selectedPages.map((p) => (
-                <div key={p.id} className="campaign-page-item">
-                  <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
-                  <span>{p.pageName}</span>
+        <>
+          <div className="campaign-pages-section">
+            <span className="field-label">Facebook Pages ({selectedPages.length})</span>
+            {selectedPages.length === 0 ? (
+              <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>Via này chưa có page nào được chọn.</p>
+            ) : (
+              <div className="campaign-pages-list">
+                {selectedPages.map((p) => (
+                  <div key={p.id} className="campaign-page-item">
+                    <span className="status-chip success" style={{ fontSize: 11 }}>✓</span>
+                    <span>{p.pageName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {viaIgAccounts.length > 0 && (
+            <div className="campaign-pages-section" style={{ marginTop: 8 }}>
+              <span className="field-label">Instagram Accounts ({selectedIgAccounts.length})</span>
+              {selectedIgAccounts.length === 0 ? (
+                <p className="subtle" style={{ fontSize: 13, marginTop: 8 }}>Via này chưa có IG account nào được chọn.</p>
+              ) : (
+                <div className="campaign-pages-list">
+                  {selectedIgAccounts.map((a) => (
+                    <div key={a.id} className="campaign-page-item">
+                      <span className="status-chip" style={{ fontSize: 11, color: "var(--accent)" }}>IG</span>
+                      <span>@{a.username}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
 
       <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>

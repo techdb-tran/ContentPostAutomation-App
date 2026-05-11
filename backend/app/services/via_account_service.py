@@ -1,6 +1,7 @@
 import requests
 
 from app.repositories.facebook_page_repository import FacebookPageRepository
+from app.repositories.instagram_account_repository import InstagramAccountRepository
 from app.repositories.via_account_repository import ViaAccountRepository
 from app.utils.exceptions import AppError, NotFoundError
 
@@ -11,6 +12,7 @@ class ViaAccountService:
     def __init__(self):
         self.repository = ViaAccountRepository()
         self.page_repository = FacebookPageRepository()
+        self.ig_repository = InstagramAccountRepository()
 
     def list_accounts(self, user_id: str):
         return self.repository.list_by_user(user_id)
@@ -26,7 +28,11 @@ class ViaAccountService:
 
         all_pages = []
         next_url = f"{GRAPH_BASE}/me/accounts"
-        params = {"fields": "id,name,access_token", "access_token": via.access_token, "limit": 100}
+        params = {
+            "fields": "id,name,access_token,instagram_business_account{id,username}",
+            "access_token": via.access_token,
+            "limit": 100,
+        }
 
         while next_url and len(all_pages) < 100:
             try:
@@ -43,7 +49,9 @@ class ViaAccountService:
             next_url = body.get("paging", {}).get("next")
             params = {}
 
-        return self.page_repository.upsert_from_facebook(via_account_id, all_pages[:100], user_id)
+        pages = self.page_repository.upsert_from_facebook(via_account_id, all_pages[:100], user_id)
+        self.ig_repository.upsert_from_pages(via_account_id, all_pages[:100], user_id)
+        return pages
 
     def delete_account(self, via_account_id: str):
         if not self.repository.delete(via_account_id):
@@ -53,3 +61,8 @@ class ViaAccountService:
         if not self.repository.get_by_id(via_account_id):
             raise NotFoundError("Via account không tồn tại")
         return self.page_repository.update_selection_for_via(via_account_id, selected_page_ids, user_id)
+
+    def save_ig_selection(self, via_account_id: str, selected_ig_ids: list, user_id: str):
+        if not self.repository.get_by_id(via_account_id):
+            raise NotFoundError("Via account không tồn tại")
+        return self.ig_repository.update_selection(via_account_id, selected_ig_ids, user_id)

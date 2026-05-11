@@ -52,12 +52,9 @@ class ViaAccountRepository:
         ref = db.collection(COLLECTION).document(via_account_id)
         if not ref.get().exists:
             return False
-        pages = (
-            db.collection("facebook_pages")
-            .where("via_account_id", "==", via_account_id)
-            .get()
-        )
-        for page in pages:
-            page.reference.delete()
+        for col in ("facebook_pages", "instagram_accounts"):
+            docs = db.collection(col).where("via_account_id", "==", via_account_id).get()
+            for doc in docs:
+                doc.reference.delete()
         ref.delete()
         return True

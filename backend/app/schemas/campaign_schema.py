@@ -10,6 +10,15 @@ class FacebookPageSummarySchema(Schema):
     is_active = fields.Boolean()
 
 
+class InstagramAccountSummarySchema(Schema):
+    id = fields.String()
+    via_account_id = fields.String()
+    instagram_id = fields.String()
+    username = fields.String()
+    is_selected = fields.Boolean()
+    is_active = fields.Boolean()
+
+
 class CreateCampaignRequestSchema(Schema):
     class Meta:
         unknown = EXCLUDE
@@ -26,6 +35,7 @@ class CreateCampaignRequestSchema(Schema):
     rows_per_run = fields.Integer(required=False, load_default=5, validate=validate.Range(min=1, max=100))
     via_account_id = fields.String(required=False, allow_none=True, load_default=None)
     page_ids = fields.List(fields.String(), required=False, load_default=list)
+    instagram_account_ids = fields.List(fields.String(), required=False, load_default=list)
 
 
 class UpdateCampaignRequestSchema(Schema):
@@ -45,6 +55,7 @@ class UpdateCampaignRequestSchema(Schema):
     is_active = fields.Boolean(required=False)
     via_account_id = fields.String(required=False, allow_none=True, load_default=None)
     page_ids = fields.List(fields.String(), required=False, load_default=None)
+    instagram_account_ids = fields.List(fields.String(), required=False, load_default=None)
 
 
 class CampaignResponseSchema(Schema):
@@ -62,3 +73,4 @@ class CampaignResponseSchema(Schema):
     created_at = fields.DateTime()
     updated_at = fields.DateTime()
     pages = fields.List(fields.Nested(FacebookPageSummarySchema()))
+    instagram_accounts = fields.List(fields.Nested(InstagramAccountSummarySchema()))

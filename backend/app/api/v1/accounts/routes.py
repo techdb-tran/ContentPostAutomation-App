@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.schemas.facebook_page_schema import FacebookPageResponseSchema
+from app.schemas.instagram_account_schema import InstagramAccountResponseSchema, SaveIgSelectionSchema
 from app.schemas.via_account_schema import CreateViaAccountRequestSchema, SavePageSelectionSchema, ViaAccountResponseSchema
 from app.services.via_account_service import ViaAccountService
 from app.utils.response import success_response
@@ -11,7 +12,9 @@ service = ViaAccountService()
 create_schema = CreateViaAccountRequestSchema()
 response_schema = ViaAccountResponseSchema()
 page_response_schema = FacebookPageResponseSchema()
+ig_response_schema = InstagramAccountResponseSchema()
 selection_schema = SavePageSelectionSchema()
+ig_selection_schema = SaveIgSelectionSchema()
 
 
 @bp.get("")
@@ -65,4 +68,16 @@ def save_page_selection(via_id: str):
     return success_response(
         data=page_response_schema.dump(pages, many=True),
         message="Đã lưu tùy chọn page",
+    )
+
+
+@bp.post("/<via_id>/ig-accounts/selection")
+@jwt_required()
+def save_ig_selection(via_id: str):
+    user_id = get_jwt_identity()
+    payload = ig_selection_schema.load(request.get_json(silent=True) or {})
+    accounts = service.save_ig_selection(via_id, payload["selected_ig_ids"], user_id)
+    return success_response(
+        data=ig_response_schema.dump(accounts, many=True),
+        message="Đã lưu tùy chọn Instagram",
     )

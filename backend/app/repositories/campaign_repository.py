@@ -6,6 +6,7 @@ from firebase_admin import firestore as fb_firestore
 from app.extensions import get_firestore
 from app.models.campaign import Campaign
 from app.repositories.facebook_page_repository import FacebookPageRepository
+from app.repositories.instagram_account_repository import InstagramAccountRepository
 
 COLLECTION = "campaigns"
 
@@ -13,6 +14,7 @@ COLLECTION = "campaigns"
 class CampaignRepository:
     def __init__(self):
         self._page_repo = FacebookPageRepository()
+        self._ig_repo = InstagramAccountRepository()
 
     def _db(self):
         return get_firestore()
@@ -20,6 +22,7 @@ class CampaignRepository:
     def _from_doc(self, doc) -> Campaign:
         data = doc.to_dict()
         page_ids = data.get("page_ids", [])
+        ig_account_ids = data.get("instagram_account_ids", [])
         campaign = Campaign(
             id=doc.id,
             user_id=data.get("user_id", ""),
@@ -34,11 +37,14 @@ class CampaignRepository:
             next_run_at=data.get("next_run_at"),
             via_account_id=data.get("via_account_id"),
             page_ids=page_ids,
+            instagram_account_ids=ig_account_ids,
             created_at=data.get("created_at", datetime.utcnow()),
             updated_at=data.get("updated_at", datetime.utcnow()),
         )
         if page_ids:
             campaign.pages = self._page_repo.get_by_page_ids(page_ids)
+        if ig_account_ids:
+            campaign.instagram_accounts = self._ig_repo.get_by_ids(ig_account_ids)
         return campaign
 
     def list_all(self, user_id: str) -> List[Campaign]:
