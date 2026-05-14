@@ -287,7 +287,7 @@ export function FbDashboard() {
   const selectedVia = viaAccounts.find((v) => v.id === selectedViaId)
   const selectedCount = pageSelection.size
   const availableCampaignPages = campaignViaPages.filter((p) => p.isSelected)
-  const fbCampaigns = campaigns.filter((c) => c.instagramAccounts.length === 0)
+  const fbCampaigns = campaigns
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
