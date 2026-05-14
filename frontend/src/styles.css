@@ -695,6 +695,68 @@ textarea {
   border-color: rgba(255, 122, 144, 0.6);
 }
 
+/* ── Campaign toggle switch ──────────────────────────────────────────────── */
+
+.campaign-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.campaign-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(145, 167, 198, 0.2);
+  border: 1px solid rgba(145, 167, 198, 0.15);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.campaign-toggle.on .toggle-track {
+  background: rgba(126, 231, 135, 0.25);
+  border-color: rgba(126, 231, 135, 0.4);
+  box-shadow: 0 0 0 1px rgba(126, 231, 135, 0.2);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.campaign-toggle.on .toggle-thumb {
+  transform: translateX(18px);
+  background: var(--success);
+}
+
+.toggle-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  min-width: 24px;
+}
+
+.campaign-toggle.on .toggle-label {
+  color: var(--success);
+}
+
 /* ── Misc ────────────────────────────────────────────────────────────────── */
 
 .field-label {

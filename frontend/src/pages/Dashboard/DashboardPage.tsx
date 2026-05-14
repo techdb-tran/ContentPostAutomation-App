@@ -67,6 +67,7 @@ export function DashboardPage() {
   const [campaignViaId, setCampaignViaId] = useState<number | null>(null)
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
   const [confirmDeleteCampaignId, setConfirmDeleteCampaignId] = useState<number | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   // Page selection for the Pages panel (save is_selected to DB)
   const [pageSelection, setPageSelection] = useState<Set<number>>(new Set())
@@ -210,6 +211,16 @@ export function DashboardPage() {
     onError: () => toast.error("Không xóa được campaign"),
   })
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      updateCampaign(id, { is_active: isActive }),
+    onSuccess: (c) => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] })
+      toast.success(c.isActive ? `Campaign "${c.name}" đã bật` : `Campaign "${c.name}" đã tạm dừng`)
+    },
+    onError: () => toast.error("Không thể thay đổi trạng thái campaign"),
+  })
+
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const onSubmitVia = (data: AddViaForm) => {
@@ -246,6 +257,14 @@ export function DashboardPage() {
   const handleDeselectAll = () => {
     setPageSelection(new Set())
     setSelectionDirty(true)
+  }
+
+  const handleToggleActive = (id: number, currentIsActive: boolean) => {
+    setTogglingId(String(id))
+    toggleActiveMutation.mutate(
+      { id, isActive: !currentIsActive },
+      { onSettled: () => setTogglingId(null) },
+    )
   }
 
   const onSubmitCampaign: import("react-hook-form").SubmitHandler<CampaignForm> = (data) => {
@@ -560,7 +579,7 @@ export function DashboardPage() {
                 <label className="field">
                   <span>Khung giờ đăng (phân cách bằng dấu phẩy)</span>
                   <input {...campaignForm.register("times")} placeholder="08:00,13:00,20:00" />
-                  <small className="subtle">Ví dụ: 08:00,13:00,20:00 → đăng 3 lần/ngày</small>
+                  <small className="subtle">Định dạng 24h (giờ VN). Ví dụ: 00:00 = nửa đêm, 12:00 = trưa, 08:00,20:00 = 2 lần/ngày</small>
                 </label>
               )}
 
@@ -679,9 +698,17 @@ export function DashboardPage() {
                           </p>
                         </div>
                         <div className="row-card-actions">
-                          <span className={`status-chip ${c.isActive ? "success" : "danger"}`}>
-                            {c.isActive ? "Active" : "Inactive"}
-                          </span>
+                          <button
+                            className={`campaign-toggle${c.isActive ? " on" : ""}`}
+                            onClick={() => handleToggleActive(c.id, c.isActive)}
+                            disabled={togglingId === String(c.id)}
+                            title={c.isActive ? "Đang chạy – nhấn để tạm dừng" : "Đang tạm dừng – nhấn để bật"}
+                          >
+                            <span className="toggle-track">
+                              <span className="toggle-thumb" />
+                            </span>
+                            <span className="toggle-label">{c.isActive ? "ON" : "OFF"}</span>
+                          </button>
                           <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => setEditingCampaign(c)}
