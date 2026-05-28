@@ -50,11 +50,25 @@ class CampaignExecutionService:
                     video_url=row.video_uri,
                     caption=row.caption,
                 )
-                posted_results.append({
+                entry: dict = {
                     "page_name": page.page_name,
                     "page_id": page.page_id,
                     "permalink_url": result["permalink_url"],
-                })
+                    "video_id": result["video_id"],
+                }
+                if row.product_link:
+                    try:
+                        comment_result = self.posting_service.post_comment(
+                            post_id=result["video_id"],
+                            page_access_token=page.page_access_token,
+                            message=f"Get yours here: {row.product_link}",
+                        )
+                        entry["comment_id"] = comment_result["comment_id"]
+                        entry["comment_status"] = "Done"
+                    except Exception as comment_exc:
+                        entry["comment_status"] = "Error"
+                        entry["comment_error"] = str(comment_exc)
+                posted_results.append(entry)
 
             first_post_url = posted_results[0]["permalink_url"] if posted_results else ""
             sheet_service.mark_done(row.row_number, first_post_url)

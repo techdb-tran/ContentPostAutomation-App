@@ -3,7 +3,7 @@ class AppError(Exception):
     message = "Internal server error"
 
     def __init__(self, message=None, status_code=None, errors=None):
-        super().__init__()
+        super().__init__(message or self.message)
         if message:
             self.message = message
         if status_code:

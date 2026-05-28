@@ -8,6 +8,7 @@ from flask import Flask
 from app import extensions
 from app.repositories.campaign_repository import CampaignRepository
 from app.services.campaign_execution_service import CampaignExecutionService
+from app.utils.exceptions import NotFoundError
 
 
 def init_scheduler(app: Flask) -> None:
@@ -25,6 +26,8 @@ def init_scheduler(app: Flask) -> None:
             for campaign in due_campaigns:
                 try:
                     execution_service.execute_next_row(campaign.id)
+                except NotFoundError:
+                    pass  # no Planning rows left — normal stop condition
                 except Exception as exc:
                     app.logger.exception("Campaign %s execution failed: %s", campaign.id, exc)
 

@@ -26,6 +26,7 @@ class SheetRowData:
     video_uri: str
     platform: str | None = None
     niche: str | None = None
+    product_link: str | None = None
     raw_values: dict[str, Any] | None = None
 
 
@@ -118,12 +119,17 @@ class GoogleSheetsService:
             if not video_uri.startswith(("http://", "https://")):
                 continue
 
+            # Column B is index 1 (0-based), read directly by position
+            product_link_raw = row_values[1].strip() if len(row_values) > 1 else ""
+            product_link = product_link_raw if product_link_raw.startswith(("http://", "https://")) else None
+
             return SheetRowData(
                 row_number=row_number,
                 caption=caption,
                 video_uri=video_uri,
                 platform=self._safe_value(row_values, platform_column) if platform_column else None,
                 niche=self._safe_value(row_values, niche_column) if niche_column else None,
+                product_link=product_link,
                 raw_values={"values": row_values},
             )
 

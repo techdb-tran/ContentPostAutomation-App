@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
@@ -85,11 +85,12 @@ export function DashboardPage() {
     queryFn: getViaAccounts,
   })
 
-  const { data: pages = [], isLoading: pagesLoading } = useQuery({
+  const { data: rawPages, isLoading: pagesLoading } = useQuery({
     queryKey: ["facebook-pages", selectedViaId],
     queryFn: () => getFacebookPages(selectedViaId ?? undefined),
     enabled: selectedViaId !== null,
   })
+  const pages = useMemo(() => rawPages ?? [], [rawPages])
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],

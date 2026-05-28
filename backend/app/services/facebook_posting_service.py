@@ -21,10 +21,11 @@ class FacebookPostingService:
         )
 
         if response.status_code >= 400:
-            raise AppError(
-                f"Facebook API error: {response.text}",
-                status_code=502,
-            )
+            try:
+                fb_msg = response.json().get("error", {}).get("message") or response.text
+            except Exception:
+                fb_msg = response.text
+            raise AppError(f"Facebook API error: {fb_msg}", status_code=502)
 
         payload = response.json()
         video_id = payload.get("id")
@@ -55,6 +56,27 @@ class FacebookPostingService:
                 return self._normalize_fb_url(permalink, video_id)
 
         return f"facebook.com/reel/{video_id}"
+
+    def post_comment(self, post_id: str, page_access_token: str, message: str) -> dict[str, Any]:
+        endpoint = f"https://graph.facebook.com/v20.0/{post_id}/comments"
+        response = requests.post(
+            endpoint,
+            data={
+                "access_token": page_access_token,
+                "message": message,
+            },
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            raise AppError(
+                f"Facebook comment API error: {response.text}",
+                status_code=502,
+            )
+        payload = response.json()
+        comment_id = payload.get("id")
+        if not comment_id:
+            raise AppError("Facebook API did not return a comment id", status_code=502)
+        return {"comment_id": comment_id}
 
     @staticmethod
     def _normalize_fb_url(permalink: str, video_id: str) -> str:
