@@ -82,9 +82,6 @@ class CampaignExecutionService:
                 "finished_at": datetime.utcnow(),
             })
 
-            campaign.next_run_at = calculate_next_run_at(campaign.schedule_mode, campaign.schedule_config)
-            self.campaign_repository.save(campaign)
-
             return {
                 "campaign_id": campaign.id,
                 "sheet_row_number": row.row_number,
@@ -104,3 +101,9 @@ class CampaignExecutionService:
                 "finished_at": datetime.utcnow(),
             })
             raise
+
+        finally:
+            # Always advance next_run_at — even on error — so a failing row does not
+            # keep the campaign permanently "due" and re-fire every scheduler tick.
+            campaign.next_run_at = calculate_next_run_at(campaign.schedule_mode, campaign.schedule_config)
+            self.campaign_repository.save(campaign)
