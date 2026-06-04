@@ -14,3 +14,6 @@ class Config:
     FIREBASE_CREDENTIALS_FILE = os.getenv("FIREBASE_CREDENTIALS_FILE", "credentials/firebase-service-account.json")
     SCHEDULER_TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "Asia/Ho_Chi_Minh")
     SCHEDULER_ENABLED = os.getenv("SCHEDULER_ENABLED", "true").lower() == "true"
+    # Shared secret to authorize external cron pings to /health/tick. If empty,
+    # the tick endpoint is open (handy for local dev). Set in production.
+    TICK_TOKEN = os.getenv("TICK_TOKEN", "")
